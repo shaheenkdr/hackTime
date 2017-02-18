@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="about_version"
+        android:summary="sss"
+        android:title="about_support">
+    </Preference>
+    <Preference
+        android:key="about_contributors"
+        android:title="about_support">
+    </Preference>
+    <Preference
+        android:key="about_licences"
+        android:title="about_support">
+    </Preference>
+    <Preference
+        android:key="about_translate"
+        android:title="about_support">
+    </Preference>
+    <Preference
+        android:key="about_product_tour"
+        android:title="about_support">
+    </Preference>
+</PreferenceScreen>
