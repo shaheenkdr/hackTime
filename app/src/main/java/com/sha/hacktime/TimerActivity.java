@@ -82,6 +82,7 @@ public class TimerActivity extends AppCompatActivity
     private BroadcastReceiver mBroadcastReceiver;
     private boolean mIsBoundToTimerService = false;
     private boolean mIsUiVisible;
+    private CircularSeekBar seekbar;
     private ServiceConnection mTimerServiceConnection = new ServiceConnection() {
 
         @Override
@@ -254,8 +255,11 @@ public class TimerActivity extends AppCompatActivity
     private void setupUi() {
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setupToolbar(toolbar);
+        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //setupToolbar(toolbar);
+
+        seekbar = (CircularSeekBar) findViewById(R.id.circularSeekBar1);
+        seekbar.setIsTouchEnabled(false);
 
         mStartLabel = (TextView) findViewById(R.id.startLabel);
 
@@ -268,7 +272,7 @@ public class TimerActivity extends AppCompatActivity
         setupLongPress();
     }
 
-    private void setupToolbar(Toolbar toolbar) {
+   /* private void setupToolbar(Toolbar toolbar) {
         setSupportActionBar(toolbar);
         try {
             if (getSupportActionBar() != null) {
@@ -303,7 +307,7 @@ public class TimerActivity extends AppCompatActivity
             });
             toolbar.addView(mSessionCounterButton, new Toolbar.LayoutParams(GravityCompat.END));
         }
-    }
+    }*/
 
 
     private void setupPauseButton() {
@@ -379,11 +383,11 @@ public class TimerActivity extends AppCompatActivity
                     updateTimeLabel();
                 }
                 break;
-            case ENABLE_SESSIONS_COUNTER:
+/*            case ENABLE_SESSIONS_COUNTER:
                 Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
                 setupToolbar(toolbar);
 
-                break;
+                break;*/
         }
     }
 
@@ -714,13 +718,18 @@ public class TimerActivity extends AppCompatActivity
         int seconds = remainingTime % 60;
 
         Log.i(TAG, "Updating time label: " + minutes + ":" + seconds);
-        String currentTick = (minutes > 0 ? minutes : "") +
-                "." +
-                format(Locale.US, "%02d", seconds);
+        String currentTick = (minutes > 0 ? minutes : "") + ":" + format(Locale.US, "%02d", seconds);
 
         SpannableString currentFormattedTick = new SpannableString(currentTick);
-        currentFormattedTick.setSpan(new RelativeSizeSpan(2f), 0, currentTick.indexOf("."), 0);
+        currentFormattedTick.setSpan(new RelativeSizeSpan(2f), 0, currentTick.indexOf(":")+3, 0);
+        updateCircularProgress(60-seconds);
         mTimeLabel.setText(currentFormattedTick);
+    }
+
+    private void updateCircularProgress(int index)
+    {
+        seekbar.setProgress(index);
+
     }
 
     private void showSessionCounterDialog() {
