@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -80,8 +81,10 @@ public class TimerActivity extends AppCompatActivity
     private AlertDialog mAlertDialog;
     private TimerService mTimerService;
     private BroadcastReceiver mBroadcastReceiver;
+    private MediaPlayer mPlayer;
     private boolean mIsBoundToTimerService = false;
     private boolean mIsUiVisible;
+    private boolean isFirstTime = false;
     private CircularSeekBar seekbar;
     private ServiceConnection mTimerServiceConnection = new ServiceConnection() {
 
@@ -103,11 +106,26 @@ public class TimerActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         mPref = setupPreferences();
+        setupMediaPlayback();
         migrateOldPreferences();
         setupUi();
         loadInitialState();
         setupAndroidNougatSettings();
         setupBroadcastReceiver();
+    }
+
+    private void setupMediaPlayback()
+    {
+        mPlayer = MediaPlayer.create(this,R.raw.watch);
+        mPlayer.setLooping(false);
+        try
+        {
+            mPlayer.prepare();
+        }
+        catch (Exception e)
+        {
+            //ignore exception
+        }
     }
 
     private void migrateOldPreferences() {
@@ -155,7 +173,19 @@ public class TimerActivity extends AppCompatActivity
     }
 
     @Override
-    protected void onDestroy() {
+    protected void onDestroy()
+    {
+        try {
+            if (mPlayer.isPlaying()) {
+                mPlayer.stop();
+            }
+
+            mPlayer.release();
+        }
+        catch (Exception e)
+        {
+            //ignore exception
+        }
         if (mIsBoundToTimerService) {
             stopService(new Intent(this, TimerService.class));
             unbindService(mTimerServiceConnection);
@@ -272,43 +302,6 @@ public class TimerActivity extends AppCompatActivity
         setupLongPress();
     }
 
-   /* private void setupToolbar(Toolbar toolbar) {
-        setSupportActionBar(toolbar);
-        try {
-            if (getSupportActionBar() != null) {
-                getSupportActionBar().setDisplayShowTitleEnabled(false);
-            }
-        } catch (Throwable th) {
-            // ignoring this exception
-        }
-
-        if (mSessionCounterButton != null ) {
-            toolbar.removeView(mSessionCounterButton);
-        }
-
-        if (mPref.getEnableSessionCounter()) {
-            mSessionCounterButton = new TextView(this);
-            mSessionCounterButton.setBackgroundColor(getResources().getColor(R.color.transparent));
-
-            final float scale = getResources().getDisplayMetrics().density;
-            final int minWidth = (int) (55 * scale + 0.5f);
-            final int padding = (int) (12 * scale + 0.5f);
-            mSessionCounterButton.setMinimumWidth(minWidth);
-            mSessionCounterButton.setPadding(padding, 0, padding, 0);
-            mSessionCounterButton.setGravity(Gravity.CENTER);
-            mSessionCounterButton.setTypeface(mSessionCounterButton.getTypeface(), Typeface.BOLD);
-
-            mSessionCounterButton.setText(String.valueOf(mPrivatePref.getInt(TOTAL_SESSION_COUNT, 0)));
-            mSessionCounterButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    showSessionCounterDialog();
-                }
-            });
-            toolbar.addView(mSessionCounterButton, new Toolbar.LayoutParams(GravityCompat.END));
-        }
-    }*/
-
 
     private void setupPauseButton() {
         mTimeLabel.setOnClickListener(new View.OnClickListener() {
@@ -400,17 +393,13 @@ public class TimerActivity extends AppCompatActivity
 
         if (mIsBoundToTimerService) {
             updateTimeLabel();
-            shutScreenOffIfPreferred();
+
         }
 
         setVisibility(mStartLabel, VISIBLE);
     }
 
-    private void shutScreenOffIfPreferred() {
-        if (mPref.getKeepScreenOn()) {
-            getWindow().clearFlags(FLAG_KEEP_SCREEN_ON);
-        }
-    }
+
 
     private void startTimer(SessionType sessionType) {
         Log.i(TAG, "Timer has been started");
@@ -418,15 +407,14 @@ public class TimerActivity extends AppCompatActivity
         mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
         setVisibility(mStartLabel, INVISIBLE);
 
-        keepScreenOnIfPreferred();
+        keepScreenOn();
 
         mTimerService.startSession(sessionType);
     }
 
-    private void keepScreenOnIfPreferred() {
-        if (mPref.getKeepScreenOn()) {
-            getWindow().addFlags(FLAG_KEEP_SCREEN_ON);
-        }
+    private void keepScreenOn()
+    {
+        getWindow().addFlags(FLAG_KEEP_SCREEN_ON);
     }
 
     private void onTimeLabelClick() {
@@ -546,7 +534,6 @@ public class TimerActivity extends AppCompatActivity
         Log.i(TAG, "Countdown has finished");
 
         acquireScreenWakelock();
-        shutScreenOffIfPreferred();
 
         mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
         increaseTotalSessions();
@@ -723,6 +710,15 @@ public class TimerActivity extends AppCompatActivity
         SpannableString currentFormattedTick = new SpannableString(currentTick);
         currentFormattedTick.setSpan(new RelativeSizeSpan(2f), 0, currentTick.indexOf(":")+3, 0);
         updateCircularProgress(60-seconds);
+        if(!isFirstTime)
+        {
+            isFirstTime = true;
+        }
+        else
+        {
+            mPlayer.start();
+        }
+
         mTimeLabel.setText(currentFormattedTick);
     }
 

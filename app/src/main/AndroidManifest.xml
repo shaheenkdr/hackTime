@@ -39,12 +39,7 @@
             android:parentActivityName=".TimerActivity"
             android:theme="@style/AppTheme"
             android:screenOrientation="portrait"/>
-        <activity
-            android:name=".about.LicencesActivity"
-            android:label="@string/about_licences"
-            android:parentActivityName=".about.AboutMainActivity"
-            android:theme="@style/AppTheme"
-            android:screenOrientation="portrait"/>
+
         <activity
             android:name=".about.ProductTourActivity"
             android:theme="@style/Theme.Intro"
