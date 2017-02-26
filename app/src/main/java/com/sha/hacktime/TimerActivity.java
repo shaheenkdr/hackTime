@@ -85,6 +85,7 @@ public class TimerActivity extends AppCompatActivity
     private boolean mIsBoundToTimerService = false;
     private boolean mIsUiVisible;
     private boolean isFirstTime = false;
+    private boolean isTimerRunning = false;
     private CircularSeekBar seekbar;
     private ServiceConnection mTimerServiceConnection = new ServiceConnection() {
 
@@ -106,7 +107,7 @@ public class TimerActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         mPref = setupPreferences();
-        setupMediaPlayback();
+
         migrateOldPreferences();
         setupUi();
         loadInitialState();
@@ -153,13 +154,13 @@ public class TimerActivity extends AppCompatActivity
             mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
         }
         removeCompletionNotification();
-
+        setupMediaPlayback();
         if (mPrivatePref.getBoolean(FIRST_RUN, true)) {
             /*Intent introIntent = new Intent(this, ProductTourActivity.class);
             startActivity(introIntent);
             mPrivatePref.edit().putBoolean(FIRST_RUN, false).apply();*/
         }
-        setFullscreenMode(mPref.getFullscreenMode());
+        setFullscreenMode();
     }
 
     @Override
@@ -168,6 +169,17 @@ public class TimerActivity extends AppCompatActivity
         if (mIsBoundToTimerService && mTimerService.getTimerState() != INACTIVE) {
             mTimerService.bringToForeground();
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+        }
+        try {
+            if (mPlayer.isPlaying()) {
+                mPlayer.stop();
+            }
+
+            mPlayer.release();
+        }
+        catch (Exception e)
+        {
+            //ignore exception
         }
         super.onStop();
     }
@@ -404,6 +416,7 @@ public class TimerActivity extends AppCompatActivity
     private void startTimer(SessionType sessionType) {
         Log.i(TAG, "Timer has been started");
 
+        isTimerRunning = true;
         mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
         setVisibility(mStartLabel, INVISIBLE);
 
@@ -424,6 +437,7 @@ public class TimerActivity extends AppCompatActivity
 
                 if (mTimerService.getSessionType() == WORK) {
                     Log.i(TAG, "Timer has been paused");
+                    isTimerRunning = false;
                     mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
                     mTimerService.pauseSession();
                     mTimeLabel.startAnimation(loadAnimation(getApplicationContext(), R.anim.blink));
@@ -442,6 +456,7 @@ public class TimerActivity extends AppCompatActivity
                 break;
             case PAUSED:
                 Log.i(TAG, "Timer has been resumed");
+                isTimerRunning = true;
                 if (mIsUiVisible) {
                     mUpdateTimeHandler.sendEmptyMessage(MSG_UPDATE_TIME);
                 }
@@ -705,16 +720,21 @@ public class TimerActivity extends AppCompatActivity
         int seconds = remainingTime % 60;
 
         Log.i(TAG, "Updating time label: " + minutes + ":" + seconds);
-        String currentTick = (minutes > 0 ? minutes : "") + ":" + format(Locale.US, "%02d", seconds);
+        String currentTick = (minutes > 0 ? minutes+":" : "") + format(Locale.US, "%02d", seconds);
 
         SpannableString currentFormattedTick = new SpannableString(currentTick);
         currentFormattedTick.setSpan(new RelativeSizeSpan(2f), 0, currentTick.indexOf(":")+3, 0);
         updateCircularProgress(60-seconds);
-        if(!isFirstTime)
+        /*if(!isFirstTime)
         {
             isFirstTime = true;
         }
         else
+        {
+            mPlayer.start();
+        }*/
+
+        if(isTimerRunning)
         {
             mPlayer.start();
         }
@@ -750,14 +770,9 @@ public class TimerActivity extends AppCompatActivity
         mAlertDialog.show();
     }
 
-    private void setFullscreenMode(boolean fullscreen) {
-        if (fullscreen) {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        } else {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-        }
+    private void setFullscreenMode() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
     }
 
 
